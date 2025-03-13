@@ -16,9 +16,6 @@ ui <- fluidPage(
       shinyjs::hidden(div(id = "file_error", style = "color: red;", "Only .xlsm files are accepted.")),
       shinyjs::hidden(div(id = "sheet_error", style = "color: red;", "Uploading File does not contain required Tab POH Data")),
       shinyjs::hidden(div(id = "colname_error", style = "color: red;", "Uploading File does not contain required column, Savings: in POH Data")),
-      dateInput("fia_start_date", "FIA Start Date", value = Sys.Date(), format = "yyyy-mm-dd"),
-      dateInput("fia_end_date", "FIA End Date", value = NULL, format = "yyyy-mm-dd"),
-      shinyjs::hidden(div(id = "fia_date_error", style = "color: red;", "FIA end date cannot be earlier than start date.")),
       dateInput("start_date", "Contract Start Date", format = "yyyy-mm-dd"),
       dateInput("end_date", "Contract End Date", value = NULL, format = "yyyy-mm-dd"),
       shinyjs::hidden(div(id = "contract_date_error", style = "color: red;", "Contract end date cannot be earlier than start date.")),
@@ -40,7 +37,7 @@ server <- function(input, output, session) {
   invalid_file <- reactiveVal(FALSE)
   invalid_sheet <- reactiveVal(FALSE)
   invalid_column <- reactiveVal(FALSE)
-  invalid_fia_dates <- reactiveVal(FALSE)
+ #invalid_fia_dates <- reactiveVal(FALSE)
   invalid_contract_dates <- reactiveVal(FALSE)
   
   # Sequential validation
@@ -95,13 +92,13 @@ server <- function(input, output, session) {
     shinyjs::toggle("file_error", condition = invalid_file())
     shinyjs::toggle("sheet_error", condition = invalid_sheet())
     shinyjs::toggle("colname_error", condition = invalid_column())
-    shinyjs::toggle("fia_date_error", condition = invalid_fia_dates())
+    #shinyjs::toggle("fia_date_error", condition = invalid_fia_dates())
     shinyjs::toggle("contract_date_error", condition = invalid_contract_dates())
   })
   
   # Disable run button and set tooltip
   observe({
-    any_invalid <- invalid_file() || invalid_sheet() || invalid_column() || invalid_fia_dates() || invalid_contract_dates()
+    any_invalid <- invalid_file() || invalid_sheet() || invalid_column()|| invalid_contract_dates()
     shinyjs::toggleState("run_analysis", condition = !any_invalid)
     
     if (any_invalid) {
@@ -109,7 +106,7 @@ server <- function(input, output, session) {
       if (invalid_file()) errors <- c(errors, "Invalid file type")
       if (invalid_sheet()) errors <- c(errors, "POH Data tab not found")
       if (invalid_column()) errors <- c(errors, "Column 'Savings:' not found")
-      if (invalid_fia_dates()) errors <- c(errors, "FIA end date error")
+      #if (invalid_fia_dates()) errors <- c(errors, "FIA end date error")
       if (invalid_contract_dates()) errors <- c(errors, "Contract date error")
       shinyjs::runjs(paste0(
         '$("#run_analysis").attr("title", "', paste(errors, collapse = "\\n"), '")'
@@ -134,8 +131,8 @@ server <- function(input, output, session) {
   observeEvent(input$run_analysis, {
     current_state <- list(
       file = input$file,
-      fia_start_date = input$fia_start_date,
-      fia_end_date = input$fia_end_date,
+      #fia_start_date = input$fia_start_date,
+      #fia_end_date = input$fia_end_date,
       start_date = input$start_date,
       end_date = input$end_date
     )
@@ -171,10 +168,7 @@ server <- function(input, output, session) {
     as.numeric(difftime(input$end_date, input$start_date, units = "days")) + 1
   })
   
-  fia_days <- reactive({
-    req(input$fia_start_date, input$fia_end_date)
-    as.numeric(difftime(input$fia_end_date, input$fia_start_date, units = "days")) + 1
-  })
+  fia_days <- reactive(365)
   
   savings_data <- eventReactive(analysis_trigger(), {
     req(data(), contract_days(), fia_days())
